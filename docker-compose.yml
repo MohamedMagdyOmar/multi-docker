@@ -1,0 +1,49 @@
+version: '3'
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+  redis:
+    image: 'redis:latest'
+  
+  nginx:
+    restart: always # i always want nginx is ready to go
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - '3050:80' # map 3050 on my local machine to docker port 80
+  api:
+    build:
+      dockerfile: Dockerfile.dev # we did not specify the folder, we specify it in the next line 'context'
+      context: ./server
+    volumes:
+      - /app/node_modules # do not override this folder, leave ths folder as is
+      - ./server:/app # look at the server directory, and copy every thing inside the container
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGUSER=postgres
+      - PGDATABASE=postgres
+      - POSTGRES_PASSWORD=postgres_password
+      - PGPORT=5432
+  client:
+    build: 
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /app/node_modules
+      - ./client:/app
+    environment:
+      - WDS_SOCKET_PORT=0
+  worker:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
